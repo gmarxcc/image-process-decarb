@@ -2,21 +2,22 @@ run("8-bit");
 run("Median...", "radius=3");
 run("Statistical Region Merging", "q=4 showaverages");
 setKeyDown("shift");
-//main zones
-doWand(516, 752, 10.0, "8-connected");
-doWand(854, 754, 10.0, "8-connected");
-doWand(2340, 716, 10.0, "8-connected");
-doWand(314, 742, 10.0, "8-connected");
-doWand(374, 700, 10.0, "8-connected");
-doWand(158, 726, 10.0, "8-connected");
-doWand(406, 744, 10.0, "8-connected");
-doWand(830, 700, 10.0, "8-connected");
-doWand(756, 704, 10.0, "8-connected");
-doWand(1496, 708, 10.0, "8-connected");
-doWand(1250, 700, 10.0, "8-connected");
-//upper zones
-doWand(2086, 696, 10.0, "8-connected");
-doWand(2462, 694, 10.0, "8-connected");
-doWand(2350, 690, 10.0, "8-connected");
-doWand(2548, 772, 10.0, "8-connected");
+//main zones selection
+doWand(161, 721, 10.0, "8-connected");
+doWand(269, 712, 10.0, "8-connected");
+doWand(313, 750, 10.0, "8-connected");
+doWand(505, 713, 10.0, "8-connected");
+doWand(709, 716, 10.0, "8-connected");
+doWand(752, 694, 10.0, "8-connected");
+doWand(2400, 738, 10.0, "8-connected");
+//upper limit zones selection
+doWand(2464, 694, 10.0, "8-connected");
+doWand(1493, 712, 10.0, "8-connected");
+doWand(848, 692, 10.0, "8-connected");
+doWand(1244, 692, 10.0, "8-connected");
+doWand(1760, 702, 10.0, "8-connected");
+doWand(2082, 702, 10.0, "8-connected");
+doWand(2365, 698, 10.0, "8-connected");
+doWand(1856, 698, 10.0, "8-connected");
 setKeyDown("none");
+run("Create Mask");

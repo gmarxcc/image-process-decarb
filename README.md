@@ -16,7 +16,7 @@ Thus, to follow this guide, the repository includes four metallographs from a AI
 
   Below is shown the `1a_4_5x_D.png` image; *images include at the right-bottom side, the scale calibration rule*.
 
-![](1a_3_5x_D.png)
+![Original image](1a_3_5x_D.png)
 
   # Preprocess stage #
   Open one of the included metallographs by pressing `Ctr-O` or click on `File -> Open` and select the file image. Then, in order to make reproducible steps follow the next series of small ImageJ scripts (macros) to follow and obtain the same results. First, open the preprocess macro by click on `Plugins -> Macros -> Run` and select the `preprocess.ijm` file. 
@@ -33,40 +33,116 @@ the script enables the **segmented line** and define its line width at 1500 to c
 
 **Notice that this stage is not required if image is already prepared**. The resulting image is shown below:
 
-![](step1.png)
-
+![Result of preprocess stage](str.png)
 
 # Segmentation stage # 
-The segmentation applies the median filter and SRM process over the previous resulting image. In this example, the selected zones are similar to  complete decarburized zones.
+The segmentation applies the median filter and SRM process over the previous resulting image. In this example, the segmented zones are similar to the total decarburized zones.
+
+**Notice that segmented zones selectivity depends on the values of r and Q; median filter and SRM.**
+
+The contents of `segmentation.ijm` is listed below:
 
 ``` javascript
 run("8-bit");
 run("Median...", "radius=3");
 run("Statistical Region Merging", "q=4 showaverages");
 setKeyDown("shift");
-//main zones
-doWand(516, 752, 10.0, "8-connected");
-doWand(854, 754, 10.0, "8-connected");
-doWand(2340, 716, 10.0, "8-connected");
-doWand(314, 742, 10.0, "8-connected");
-doWand(374, 700, 10.0, "8-connected");
-doWand(158, 726, 10.0, "8-connected");
-doWand(406, 744, 10.0, "8-connected");
-doWand(830, 700, 10.0, "8-connected");
-doWand(756, 704, 10.0, "8-connected");
-doWand(1496, 708, 10.0, "8-connected");
-doWand(1250, 700, 10.0, "8-connected");
-//upper zones
-doWand(2086, 696, 10.0, "8-connected");
-doWand(2462, 694, 10.0, "8-connected");
-doWand(2350, 690, 10.0, "8-connected");
-doWand(2548, 772, 10.0, "8-connected");
+//main zones selection
+doWand(161, 721, 10.0, "8-connected");
+doWand(269, 712, 10.0, "8-connected");
+doWand(313, 750, 10.0, "8-connected");
+doWand(505, 713, 10.0, "8-connected");
+doWand(709, 716, 10.0, "8-connected");
+doWand(752, 694, 10.0, "8-connected");
+doWand(2400, 738, 10.0, "8-connected");
+//upper limit zones selection
+doWand(2464, 694, 10.0, "8-connected");
+doWand(1493, 712, 10.0, "8-connected");
+doWand(848, 692, 10.0, "8-connected");
+doWand(1244, 692, 10.0, "8-connected");
+doWand(1760, 702, 10.0, "8-connected");
+doWand(2082, 702, 10.0, "8-connected");
+doWand(2365, 698, 10.0, "8-connected");
+doWand(1856, 698, 10.0, "8-connected");
 setKeyDown("none");
+run("Create Mask");
+```
+
+The `run("8-bit")` command converts the original image to gray-scale. Next, the `run("Median...", "radius=3")` applies the median filter with a window radius of 3 pixels. Then, the SRM is instructed by `run("Statistical Region Merging", "q=4 showaverages")` command; in this case a *Q* value of 4 is used. To learn about the selectivity of both, *r* and *Q* values, please refer to [^1]. The `showaverages` option allows to create statistically similar zones that enhance the selection in next steps.
+
+Finally, the `Wand` tool is used to pick the regions of interest to measure. This can be done by manual pick (using the mouse), or as in this case, to make reproducible measurements by using code. The `doWand(161, 721, 10.0, "8-connected")` command is equivalent to click  with the mouse pointer at coordinates *(161, 721)*, with tolerance of 10 (about the picked intensity value), and the option `8-connected` considers the 8 neighbor pixels. 
+
+Additionally, the `setKeyDown("shift")` and `run("Create Mask")` commands allow to pick multiple zones and add them to the final selection; similar to hold the `shift` key in ImageJ.
+
+The resulting segmented zone (left, before apply the `Create Mask` command) and its comparison with the original image (right, straightened image) is shown next:
+
+![srm comparison](srm.png)
+
+The final mask is shown next:
+
+![Resulting mask](Mask.png)
+
+# Measurement stage #
+
+``` javascript
+doWand(742, 702);
+//Setting configuration:
+run("Clear Results"); 
+run("Set Measurements...", "  bounding stack limit display redirect=None decimal=3"); 
+//Warning: Set Scale comman must be ajusted considering:
+// distance is the value in pixels of the know distance, 
+// here 172.5px are equivalen to 100um at 5X zoom
+run("Set Scale...", "distance=171.5 known=100 pixel=1 unit=um"); 
+//run("Scale Bar...", "width=50 height=5 font=50 color=White background=Black location=[Lower Right] bold serif overlay label");
+run("To Bounding Box"); 
+run("Reslice [/]...", "output=1.000 start=Left avoid");  //start=Top (Horizontal slices), start=Left(vertical measurements)
+run("Analyze Particles...", "circularity=0.0-1.00 show=Nothing display clear stack include in_situ"); 
+//Measuring:
+
+// Check slice number 
+getDimensions(x,y,c,z,t); 
+theWidth = newArray(z); 
+//print("Number of Slides:", z);
+name=getTitle(); 
+//Width of each particle on slide
+for (i=0;i<nResults;i++) { 
+        tmpW = getResult("Width", i); 
+        slice =  getResult("Slice", i); 
+        theWidth[slice-1]+=tmpW*(1); 
+} 
+//Results:
+Pos=newArray(z);
+Thick=newArray(z);
+run("Clear Results"); 
+for (i=0;i<z;i++) { 
+        setResult("Label", i, name); 
+        setResult("Position", i, i+1); 
+        Pos[i]=i+1;
+        Thick[i]=theWidth[i];
+        setResult("Thickness", i, theWidth[i]); 
+}
+//Plotting results:
+run("Summarize");
+meanThick=newArray(z);
+//Distribution:
+run("Distribution...","parameter=Thickness");
+//xPos=newArray(1);
+//xPos=1;
+meanTemp=getResult("Thickness",(nResults-4));
+for (i = 0; i < z; i++) {
+  meanThick[i]=meanTemp;}
+Plot.create("Fancier Plot", "Position", "Thickness[um]");
+//Plot.setLimits(0, 5, 0, 3);
+Plot.setLineWidth(1.4);
+Plot.setColor("Black");
+Plot.add("Circles", Pos, Thick);
+Plot.setColor("red");
+Plot.setLineWidth(1.7);
+//Plot.add("line",meanThick)
+Plot.show();
 ```
 
 
-
-  The preprocess stage consists 
 
 - Insert a segmented line (line width 1,000 - 1,500 spline fit activated)
 - Straighten process
@@ -81,13 +157,6 @@ setKeyDown("none");
 - Mix images to compare (Shift -E)
 - Run `depth-measurement.ijm` macro (version of this branch measures vertical thickness) to obtain measurements 
 
-## Original files ##
-
-
- ## Original files ##
- ## Straighten process
- # asdasd
- ## asdas
 
    
 
