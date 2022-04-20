@@ -84,25 +84,32 @@ The final mask is shown next:
 
 # Measurement stage #
 
+This step gets the depth measurements on the Mask-image obtained previously. To apply properly this step, the input image must be a black and whit digital image, also a known distance is required to use as scale factor over the measurements conversion. This scale factor is commonly obtained from the original image's calibration rule; at the right-bottom side of the original micrograph. 
+
+**In this particular case, the know distance is 100 micrometers and is equivalent to 171.5 pixels.**
+
+The next script is the contents of `depth.ijm` file:
+
 ``` javascript
 doWand(742, 702);
+//-=-=-=-=-=-=-=-=-=
 //Setting configuration:
 run("Clear Results"); 
 run("Set Measurements...", "  bounding stack limit display redirect=None decimal=3"); 
-//Warning: Set Scale comman must be ajusted considering:
+// Warning: Set Scale command must be adjusted considering:
 // distance is the value in pixels of the know distance, 
-// here 172.5px are equivalen to 100um at 5X zoom
+// here 171.5px are equivalent to 100um at 5X zoom.
 run("Set Scale...", "distance=171.5 known=100 pixel=1 unit=um"); 
+// uncomment next line to show the scale bar: 
 //run("Scale Bar...", "width=50 height=5 font=50 color=White background=Black location=[Lower Right] bold serif overlay label");
 run("To Bounding Box"); 
-run("Reslice [/]...", "output=1.000 start=Left avoid");  //start=Top (Horizontal slices), start=Left(vertical measurements)
+run("Reslice [/]...", "output=1.000 start=Left avoid");  //use start=Top for Horizontal slices, and start=Left(vertical measurements)
 run("Analyze Particles...", "circularity=0.0-1.00 show=Nothing display clear stack include in_situ"); 
+//-=-=-=-=-=-=-=-=-=
 //Measuring:
-
 // Check slice number 
 getDimensions(x,y,c,z,t); 
 theWidth = newArray(z); 
-//print("Number of Slides:", z);
 name=getTitle(); 
 //Width of each particle on slide
 for (i=0;i<nResults;i++) { 
@@ -126,8 +133,6 @@ run("Summarize");
 meanThick=newArray(z);
 //Distribution:
 run("Distribution...","parameter=Thickness");
-//xPos=newArray(1);
-//xPos=1;
 meanTemp=getResult("Thickness",(nResults-4));
 for (i = 0; i < z; i++) {
   meanThick[i]=meanTemp;}
@@ -142,25 +147,40 @@ Plot.setLineWidth(1.7);
 Plot.show();
 ```
 
+The complete code is segmented next for a better explanation.
+
+## Setting configuration
+The first section configures the `measurement`, `set scale`, `Reslice`, and ` Analyze Particles` tools, details are below:
+
+``` javascript
+doWand(742, 702);
+//-=-=-=-=-=-=-=-=-=
+//Setting configuration:
+run("Clear Results"); 
+run("Set Measurements...", "  bounding stack limit display redirect=None decimal=3"); 
+// Warning: Set Scale command must be adjusted considering:
+// distance is the value in pixels of the know distance, 
+// here 171.5px are equivalent to 100um at 5X zoom.
+run("Set Scale...", "distance=171.5 known=100 pixel=1 unit=um"); 
+// uncomment next line to show the scale bar: 
+//run("Scale Bar...", "width=50 height=5 font=50 color=White background=Black location=[Lower Right] bold serif overlay label");
+run("To Bounding Box"); 
+run("Reslice [/]...", "output=1.000 start=Left avoid");  //use start=Top for Horizontal slices, and start=Left(vertical measurements)
+run("Analyze Particles...", "circularity=0.0-1.00 show=Nothing display clear stack include in_situ"); 
+//-=-=-=-=-=-=-=-=-=
+```
+The `doWand(742, 702)` command select the decarburized zone as the main region of interest (ROI) to obtain depth measurements. Next, `Clear Results` delete previous measurements on the common use table called `Results`. Then, `Set Measurements` defines the kind of measurements that will be pass to next tools.
+
+Next, the `Set Scale` command defines the known distance, previously measured in the original micrograph, and used to create a conversion factor in measurements. This step allows to obtain results in micro-meters.
+
+The `Reslice` command creates a stack of slices from original image by considering to start at `Left` of the image, and for this particular case output space considered for the next slice is 1px.Next, the `Aanlyze Particles...` command measure the each slice considering a circularity of `0-1` pixels by considering holes and creating a stack of result for a later process. **Thus, the input image must consider depth measurement zones complete filled, other wise an offset could be introduced.**
 
 
-- Insert a segmented line (line width 1,000 - 1,500 spline fit activated)
-- Straighten process
-- Save Straightened image
-- Apply 8-bit conversion
-- Apply the median filter with radius (`r`)
-- Apply statistical region merging segmentation (SRMS) with `Q` value
-- Use the wand tool to select the resulting zones; tolerance 5-10
-- Create mask
-- Create selection
-- Revert straighten image to original
-- Mix images to compare (Shift -E)
-- Run `depth-measurement.ijm` macro (version of this branch measures vertical thickness) to obtain measurements 
+![](results.png)
 
+# Other included files in repository
 
-   
-
-## Straightening  ##
+## Straightening  images##
 The resulting images after straightened images are stores in:
   * `1a1str.png`
   * `1a2str.png`
@@ -168,44 +188,17 @@ The resulting images after straightened images are stores in:
   * `1a4str.png`
 
 
-# Methodology #
-The methodology is to vary the `Q` and `r` values to observe improvements in selectivity next to the total decarburizated zone and the histograms.
 
-
-## Radius fixed r=9 and Q varies(4,8,16,32 and 64) ##
-In this part the median filter radius `r` is fixed to 9 and `Q` is varied by
-
-``` javascript
-//run("Straighten...")
-run("8-bit");
-run("Median...", "radius=9")
-run("Statistical Region Merging","q=4 showaverages");
-//run("Versatile Wand Tool", " 10, 0, 5 8-connected include")
-```
-
-therefore, the `q=4` value has to be changed every time in a the previously selected zone.
-
-The output files are named with the next convention: `XaYrWQZ.png`, here `X` is the number of specimen (zone), `Y` is the zone of the specimen, `W` is the radius value in pixels (eg 9), and `Z` is the value of `q`(in this case 4). An example of nomenclature is the file `1a1r9Q4.png`.
-
-**The same treatment was done for other r values (6 and 3), sweeping the Q value.**
-
-## Manual measurements ##
+## Manual measurements data ##
 
 The general procedure consist of:
 
   * Set scales based on 100um image
-  * Measure 10um line (value aprox is 171-172 pxs; 171 was used)
-  * 10 manual measurements along the total decarburizated zone
-  * The resulting 11 measurements are stored into CSV file, like `manual-1aX`, where `X` is the zone number
+  * Measure 100um line (value aprox is 171-172 pxs; 171.5 was used)
+  * make 10 manual measurements along the total decarburizated zone
+  * The resulting measurements are stored into CSV file, like `manual-1aX`, where `X` is the zone number
+
+  Then, there are four files from manual measurements over four micrographs.
 
 ## Automatic measurements ##
-The automatic measurements are done with `r=3` and testing values of `Q` at 22 and 25. In this range total decarburizated zones are best selected.
-**The final values are `r=3` and `Q=25`**
-
-
-
-# Manual measurements #
-
-  * Measure the scale inserted over the original image at the right-bottom area
-  * The `set-scale` command was used with 171.5 px as known 100um distance in micrometers as unit of length
-  * Obtain at less 10 measurements (representative measurements)
+The automatic measurements are done with `r=3` and `Q` at 4.
